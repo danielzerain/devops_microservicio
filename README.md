@@ -181,6 +181,8 @@ flowchart LR
     S6 --> Post["Post Actions (Limpieza)"]
 ```
 
+![Texto alternativo](capturas/aplicacion.png)
+
 ### Stage 1: Checkout
 ```groovy
 stage('Checkout') {
@@ -212,6 +214,8 @@ stage('Build & Test') {
   * `-ntp` (*No Transfer Progress*): Omite mensajes repetitivos de descarga de artefactos, optimizando la visualización de logs.
 * **Post-Acción (`always`):** Publica los resultados generados por el plugin Surefire (`target/surefire-reports/*.xml`) para registrar métricas de tests aprobados/fallidos en la interfaz de Jenkins.
 
+![Texto alternativo](capturas/test.png)
+
 ---
 
 ### Stage 3: Coverage
@@ -229,6 +233,8 @@ stage('Coverage') {
 ```
 * **Propósito:** Genera el reporte de cobertura de código mediante **JaCoCo**.
 * **Post-Acción (`success`):** Almacena y grafica las métricas históricas de cobertura de código (líneas, ramas y métodos) usando el plugin *Code Coverage* de Jenkins.
+
+![Texto alternativo](capturas/coverage.png)
 
 ---
 
@@ -250,6 +256,8 @@ stage('SonarQube') {
   * `withSonarQubeEnv('sonarqube')`: Inyecta la variable de entorno con la URL (`http://localhost:9000`) y el token del servidor SonarQube configurado en Jenkins.
   * Ejecuta el scanner de SonarQube mediante Maven para transferir el análisis y los reportes de JaCoCo al servidor SonarQube.
 
+![Texto alternativo](capturas/sonarqube.png)
+
 ---
 
 ### Stage 5: Package
@@ -262,6 +270,8 @@ stage('Package') {
 ```
 * **Propósito:** Construye el archivo empaquetado final (`.jar` ejecutable de Spring Boot) en el directorio `target/`.
 * **Optimización:** `-DskipTests` evita repetir la ejecución de pruebas unitarias que ya fueron validadas y reportadas en las fases previas, optimizando los tiempos del ciclo de CI/CD.
+
+![Texto alternativo](capturas/steps.png)
 
 ---
 
@@ -293,6 +303,9 @@ stage('Build & Push Docker Hub') {
   4. `docker push`: Publica ambas etiquetas en el registro público.
   5. `docker logout`: Cierra la sesión activa en el host local.
 
+![Texto alternativo](capturas/dockerbuild.png)
+
+![Texto alternativo](capturas/dockerhub.png)
 ---
 
 ## 4. Post-Actions Globales (Mantenimiento)
