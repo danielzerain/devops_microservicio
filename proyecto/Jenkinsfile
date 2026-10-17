@@ -1,30 +1,38 @@
 pipeline {
     agent any
+
     tools {
         maven 'maven_310'
         jdk 'jdk_17'
     }
+
     environment {
         HOME = "${WORKSPACE}"
-        NEXUS_CREDENTIALS = credentials('nexus_user')
-    }   
+        JAVA_HOME = "${tool 'jdk_17'}"
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+        IMAGE_NAME = 'danielzerain/devops_microservicio'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKER_HUB_REPOSITORY = 'dockerhub-credentials'
+    }
+
     stages {
-        stage('Build') {
+        stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/danielzerain/devops_microservicio.git'
-                sh 'mvn clean compile -B -ntp'
             }
         }
-        stage('Test') {
+
+        stage('Build & Test') {
             steps {
-                sh 'mvn test -B -ntp'
+                sh 'mvn clean test -B -ntp'
             }
             post {
-                success {
-                    junit 'target/surefire-reports/*.xml'
+                always {
+                    junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
                 }
             }
         }
+
         stage('Coverage') {
             steps {
                 sh 'mvn jacoco:report -B -ntp'
@@ -35,6 +43,7 @@ pipeline {
                 }
             }
         }
+        
         stage('SonarQube') {
             steps {
                 withSonarQubeEnv('sonarqube'){
@@ -45,18 +54,37 @@ pipeline {
                 }
             }
         }
+
         stage('Package') {
-            agent {
-                docker {
-                    image 'maven:3.9.16-eclipse-temurin-17'
+            steps {
+                sh 'mvn package -B -ntp -DskipTests'
+            }
+        }
+
+        stage('Build & Push Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_HUB_REPOSITORY}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${IMAGE_NAME}:latest
+                        docker logout
+                    '''
                 }
             }
-            environment {
-                HOME = "${WORKSPACE}"
-            }
-            steps {
-                sh 'mvn clean package -B -ntp -DskipTests'
-            }
+        }
+    }
+
+    post {
+        always {
+            sh '''
+                docker rmi ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest 2>/dev/null || true
+            '''
         }
     }
 }
